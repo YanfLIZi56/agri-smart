@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.agriSmart.alert.mapper.AlertThresholdMapper">
+    
+    <resultMap type="AlertThreshold" id="AlertThresholdResult">
+        <result property="id"    column="id"    />
+        <result property="plotId"    column="plot_id"    />
+        <result property="plotName"    column="plot_name"    />
+        <result property="alertTypeId"    column="alert_type_id"    />
+        <result property="alertType"    column="alert_type"    />
+        <result property="minValue"    column="min_value"    />
+        <result property="maxValue"    column="max_value"    />
+        <result property="unit"    column="unit"    />
+        <result property="enabled"    column="enabled"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectAlertThresholdVo">
+        select a.id, a.plot_id, a.alert_type_id, a.min_value, a.max_value, a.enabled, a.create_time, a.update_time,
+               b.name as alert_type, c.name as plot_name, b.unit
+        from alert_threshold a
+            join alert_type b on a.alert_type_id = b.id
+            join farm_plot c on a.plot_id = c.id
+    </sql>
+
+    <select id="selectAlertThresholdList" parameterType="AlertThreshold" resultMap="AlertThresholdResult">
+        <include refid="selectAlertThresholdVo"/>
+        <where>  
+            <if test="plotId != null "> and a.plot_id = #{plotId}</if>
+            <if test="plotName != null and plotName != ''"> and c.plot_name = concat('%', #{plotName}, '%')</if>
+            <if test="alertTypeId != null "> and a.alert_type_id = #{alertTypeId}</if>
+            <if test="enabled != null "> and a.enabled = #{enabled}</if>
+        </where>
+    </select>
+    
+    <select id="selectAlertThresholdById" parameterType="Long" resultMap="AlertThresholdResult">
+        <include refid="selectAlertThresholdVo"/>
+        where a.id = #{id}
+    </select>
+
+    <select id="selectAlertThresholdByIdByPlotAndType" resultMap="AlertThresholdResult">
+        select id, plot_id, alert_type_id, min_value, max_value, enabled
+        from alert_threshold
+        where plot_id = #{plotId} and alert_type_id = #{alertTypeId}
+        limit 1
+    </select>
+
+    <select id="selectAlertThresholdByIds" resultMap="AlertThresholdResult">
+        select id,plot_id,alert_type_id
+        from alert_threshold
+        where id in
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <insert id="insertAlertThreshold" parameterType="AlertThreshold" useGeneratedKeys="true" keyProperty="id">
+        insert into alert_threshold
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="plotId != null">plot_id,</if>
+            <if test="alertTypeId != null">alert_type_id,</if>
+            <if test="minValue != null">min_value,</if>
+            <if test="maxValue != null">max_value,</if>
+            <if test="enabled != null">enabled,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="plotId != null">#{plotId},</if>
+            <if test="alertTypeId != null">#{alertTypeId},</if>
+            <if test="minValue != null">#{minValue},</if>
+            <if test="maxValue != null">#{maxValue},</if>
+            <if test="enabled != null">#{enabled},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAlertThreshold" parameterType="AlertThreshold">
+        update alert_threshold
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="plotId != null">plot_id = #{plotId},</if>
+            <if test="alertTypeId != null">alert_type_id = #{alertTypeId},</if>
+            min_value = #{minValue},
+            max_value = #{maxValue},
+            <if test="enabled != null">enabled = #{enabled},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteAlertThresholdById" parameterType="Long">
+        delete from alert_threshold where id = #{id}
+    </delete>
+
+    <delete id="deleteAlertThresholdByIds" parameterType="String">
+        delete from alert_threshold where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

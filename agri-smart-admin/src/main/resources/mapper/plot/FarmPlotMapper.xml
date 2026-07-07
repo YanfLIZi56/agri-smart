@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.agriSmart.plot.mapper.FarmPlotMapper">
+    
+    <resultMap type="FarmPlot" id="FarmPlotResult">
+        <result property="id"    column="id"    />
+        <result property="name"    column="name"    />
+        <result property="location"    column="location"    />
+        <result property="area"    column="area"    />
+        <result property="managerId"    column="manager_id"    />
+        <result property="managerName"    column="manager_name"    />
+        <result property="plotTypeId"    column="plot_type_id"    />
+        <result property="plotType"    column="plot_type"    />
+        <result property="status"    column="status"    />
+        <result property="remark"    column="remark"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <resultMap id="FarmPlotPlotCropResult" type="FarmPlot" extends="FarmPlotResult">
+        <collection property="plotCropList" ofType="PlotCrop" column="id" select="selectPlotCropList" />
+    </resultMap>
+
+    <resultMap type="PlotCrop" id="PlotCropResult">
+        <result property="id"    column="id"    />
+        <result property="plotId"    column="plot_id"    />
+        <result property="cropId"    column="crop_id"    />
+        <result property="cropName"    column="name"    />
+        <result property="cropType"    column="type"    />
+        <result property="cropAlias"    column="alias"    />
+        <result property="nums"    column="nums"    />
+    </resultMap>
+
+    <resultMap type="com.agriSmart.alert.domain.AlertThreshold" id="AlertThresholdResult">
+        <result property="id"    column="id"    />
+        <result property="plotId"    column="plot_id"    />
+        <result property="minValue"    column="min_value"    />
+        <result property="maxValue"    column="max_value"    />
+        <result property="unit"    column="unit"    />
+        <result property="alertType"    column="alert_type"    />
+        <result property="alertTypeId"    column="alert_type_id"    />
+        <result property="enabled"    column="enabled"    />
+    </resultMap>
+
+    <sql id="selectFarmPlotVo">
+        select a.id, a.name, a.location, a.area, a.manager_id, a.plot_type_id, a.status, a.remark, a.create_by, a.create_time, a.update_by, a.update_time,
+        b.user_name as manager_name, c.name as plot_type
+        from farm_plot a
+        left join sys_user b on a.manager_id = b.user_id
+        join plot_type c on a.plot_type_id = c.id
+    </sql>
+
+    <select id="selectFarmPlotList" parameterType="FarmPlot" resultMap="FarmPlotResult">
+        <include refid="selectFarmPlotVo"/>
+        <where>  
+            <if test="name != null  and name != ''"> and name like concat('%', #{name}, '%')</if>
+            <if test="managerId != null "> and manager_id = #{managerId}</if>
+            <if test="plotTypeId != null "> and plot_type_id = #{plotTypeId}</if>
+            <if test="status != null "> and a.status = #{status}</if>
+        </where>
+    </select>
+    
+    <select id="selectFarmPlotById" parameterType="Long" resultMap="FarmPlotPlotCropResult">
+        select a.id, a.name, a.location, a.area, a.manager_id, a.plot_type_id, a.status, a.remark, a.create_by, a.create_time, a.update_by, a.update_time,
+               b.user_name as manager_name
+        from farm_plot a left join sys_user b on a.manager_id = b.user_id
+        where a.id = #{id}
+    </select>
+
+    <select id="selectPlotCropList" resultMap="PlotCropResult">
+        select a.id, plot_id, crop_id, nums, b.name, b.alias, c.name as type
+        from plot_crop a join crop b on a.crop_id = b.id join variety c on b.variety_id = c.id
+        where plot_id = #{plot_id}
+    </select>
+
+    <select id="selectEnvByPlotId" resultMap="AlertThresholdResult">
+        select a.alert_type_id,
+               a.min_value,
+               a.max_value,
+               b.unit,
+               b.name as alert_type
+        from alert_threshold a
+            join alert_type b on b.id = a.alert_type_id
+        where a.plot_id = #{id} and a.enabled = 1
+    </select>
+
+    <select id="selectRealtimeByPlotId" resultType="com.agriSmart.plot.domain.PlotEnvRealtime">
+        select collect_time as collectTime,
+               env_value as envValue,
+               alert_type_id as alertTypeId,
+               b.name as alertType,
+               b.unit
+        from plot_env_realtime a
+            join alert_type b on b.id = a.alert_type_id
+        where plot_id = #{id}
+    </select>
+
+    <select id="selectFarmPlotByIds" resultMap="FarmPlotResult">
+        select id
+        from farm_plot
+        where id in
+        <foreach item="item" collection="ids" separator="," open="(" close=")">
+            #{item.plotId}
+        </foreach>
+    </select>
+    <select id="selectFarmPlotByIds2" resultMap="FarmPlotResult">
+        select id
+        from farm_plot
+        where id in
+        <foreach item="item" collection="ids" separator="," open="(" close=")">
+            #{item.plotId}
+        </foreach>
+    </select>
+    <select id="selectCoordByPlotId" resultType="com.agriSmart.plot.domain.Coordinate">
+        select lng, lat from plot_coordinatelist where plot_id = #{id}
+    </select>
+
+
+    <insert id="insertFarmPlot" parameterType="FarmPlot" useGeneratedKeys="true" keyProperty="id">
+        insert into farm_plot
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="name != null and name != ''">name,</if>
+            <if test="location != null and location != ''">location,</if>
+            <if test="area != null">area,</if>
+            <if test="managerId != null">manager_id,</if>
+            <if test="plotTypeId != null">plot_type_id,</if>
+            <if test="status != null">status,</if>
+            <if test="remark != null">remark,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="name != null and name != ''">#{name},</if>
+            <if test="location != null and location != ''">#{location},</if>
+            <if test="area != null">#{area},</if>
+            <if test="managerId != null">#{managerId},</if>
+            <if test="plotTypeId != null">#{plotTypeId},</if>
+            <if test="status != null">#{status},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+        </trim>
+    </insert>
+
+    <update id="updateFarmPlot" parameterType="FarmPlot">
+        update farm_plot
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="name != null and name != ''">name = #{name},</if>
+            <if test="location != null and location != ''">location = #{location},</if>
+            <if test="area != null">area = #{area},</if>
+            <if test="managerId != null">manager_id = #{managerId},</if>
+            <if test="plotTypeId != null">plot_type_id = #{plotTypeId},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteFarmPlotById" parameterType="Long">
+        delete from farm_plot where id = #{id}
+    </delete>
+
+    <delete id="deleteFarmPlotByIds" parameterType="String">
+        delete from farm_plot where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+    
+    <delete id="deletePlotCropByPlotIds" parameterType="String">
+        delete from plot_crop where plot_id in 
+        <foreach item="plotId" collection="array" open="(" separator="," close=")">
+            #{plotId}
+        </foreach>
+    </delete>
+
+    <delete id="deletePlotCropByPlotId" parameterType="Long">
+        delete from plot_crop where plot_id = #{plotId}
+    </delete>
+    <delete id="deleteCoordinateByPlotId">
+        delete from plot_coordinateList where plot_id = #{id}
+    </delete>
+    <delete id="deleteCoordinateByPlotIds">
+        delete from plot_coordinateList where plot_id in
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <insert id="batchPlotCrop">
+        insert into plot_crop( id, plot_id, crop_id, nums) values
+        <foreach item="item" index="index" collection="list" separator=",">
+            ( #{item.id}, #{item.plotId}, #{item.cropId}, #{item.nums})
+        </foreach>
+    </insert>
+    <insert id="batchCoordinate">
+        insert into plot_coordinateList( id, plot_id, lng, lat) values
+        <foreach item="item" index="index" collection="list" separator=",">
+            ( #{item.id}, #{item.plotId}, #{item.lng}, #{item.lat})
+        </foreach>
+    </insert>
+</mapper>

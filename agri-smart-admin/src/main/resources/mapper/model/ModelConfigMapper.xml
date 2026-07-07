@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.agriSmart.model.mapper.ModelConfigMapper">
+    
+    <resultMap type="ModelConfig" id="ModelConfigResult">
+        <result property="id"    column="id"    />
+        <result property="modelName"    column="model_name"    />
+        <result property="modelType"    column="model_type"    />
+        <result property="version"    column="version"    />
+        <result property="filePath"    column="file_path"    />
+        <result property="modelSize"    column="model_size"    />
+        <result property="isActive"    column="is_active"    />
+        <result property="isDelete"    column="is_del"    />
+        <result property="remark"    column="remark"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectModelConfigVo">
+        select id, model_name, model_type, version, file_path, is_active, remark, create_time, update_time, model_size
+        from model_config
+    </sql>
+
+    <select id="selectModelConfigList" parameterType="ModelConfig" resultMap="ModelConfigResult">
+        <include refid="selectModelConfigVo"/>
+        <where>  
+            <if test="modelName != null  and modelName != ''"> and model_name like concat('%', #{modelName}, '%')</if>
+            <if test="modelType != null "> and model_type = #{modelType}</if>
+            <if test="isActive != null "> and is_active = #{isActive}</if>
+            and is_del = 0
+        </where>
+    </select>
+
+    <select id="remoteModelConfigList" parameterType="ModelConfig" resultMap="ModelConfigResult">
+        select id, model_name, version, is_active, is_del
+        from model_config
+        <where>
+            <if test="modelName != null  and modelName != ''"> and model_name like concat('%', #{modelName}, '%')</if>
+            <if test="modelType != null "> and model_type = #{modelType}</if>
+            <if test="isActive != null "> and is_active = #{isActive}</if>
+            <if test="isDelete != null "> and is_del = #{isDelete}</if>
+        </where>
+    </select>
+    
+    <select id="selectModelConfigById" parameterType="Long" resultMap="ModelConfigResult">
+        <include refid="selectModelConfigVo"/>
+        where id = #{id} and is_del = 0
+    </select>
+
+    <insert id="insertModelConfig" parameterType="ModelConfig" useGeneratedKeys="true" keyProperty="id">
+        insert into model_config
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="modelName != null and modelName != ''">model_name,</if>
+            <if test="modelType != null">model_type,</if>
+            <if test="version != null and version != ''">version,</if>
+            <if test="filePath != null and filePath != ''">file_path,</if>
+            <if test="modelSize != null and modelSize != ''">model_size,</if>
+            <if test="isActive != null">is_active,</if>
+            <if test="remark != null">remark,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="modelName != null and modelName != ''">#{modelName},</if>
+            <if test="modelType != null">#{modelType},</if>
+            <if test="version != null and version != ''">#{version},</if>
+            <if test="filePath != null and filePath != ''">#{filePath},</if>
+            <if test="modelSize != null and modelSize != ''">#{modelSize},</if>
+            <if test="isActive != null">#{isActive},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+    <insert id="addBatchConfig">
+        insert into model_config (model_name, model_type, version, file_path, model_size, create_time)
+        values
+        <foreach item="item" index="index" collection="models" separator=",">
+            (#{item.modelName}, #{item.modelType}, #{item.version}, #{item.filePath}, #{item.modelSize}, #{item.createTime})
+        </foreach>
+    </insert>
+
+    <update id="updateModelConfig" parameterType="ModelConfig">
+        update model_config
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="modelName != null and modelName != ''">model_name = #{modelName},</if>
+            <if test="modelType != null">model_type = #{modelType},</if>
+            <if test="version != null and version != ''">version = #{version},</if>
+            <if test="filePath != null and filePath != ''">file_path = #{filePath},</if>
+            <if test="modelSize != null and modelSize != ''">model_size = #{modelSize},</if>
+            <if test="isActive != null">is_active = #{isActive},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <update id="softDeleteModelConfigByIds">
+        update model_config set is_del = 1 where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <delete id="deleteModelConfigById" parameterType="Long">
+        delete from model_config where id = #{id}
+    </delete>
+
+    <delete id="deleteModelConfigByIds" parameterType="String">
+        delete from model_config where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

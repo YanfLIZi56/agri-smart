@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.agriSmart.model.mapper.DetectionLogMapper">
+    
+    <resultMap type="DetectionLog" id="DetectionLogResult">
+        <result property="id"    column="id"    />
+        <result property="logType"    column="log_type"    />
+        <result property="detectType"    column="detect_type"    />
+        <result property="userId"    column="user_id"    />
+        <result property="userName"    column="user_name"    />
+        <result property="modelConfigId"    column="model_config_id"    />
+        <result property="modelConfigIsDel"    column="model_config_is_del"    />
+        <result property="modelConfigIsActive"    column="model_config_is_active"    />
+        <result property="modelName"    column="model_name"    />
+        <result property="modelVersion"    column="version"    />
+        <result property="durationMs"    column="duration_ms"    />
+        <result property="resultImagePath"    column="result_image_path"    />
+        <result property="totalTargets"    column="total_targets"    />
+        <result property="feedbackStatus"    column="feedback_status"    />
+        <result property="feedbackText"    column="feedback_text"    />
+        <result property="feedbackTime"    column="feedback_time"    />
+        <result property="detectTime"    column="detect_time"    />
+        <result property="densityJson"    column="density_json"    />
+    </resultMap>
+
+    <resultMap id="DetectionLogDetectionLogDetailResult" type="DetectionLog" extends="DetectionLogResult">
+        <collection property="detectionLogDetailList" ofType="DetectionLogDetail" column="id" select="selectDetectionLogDetailList" />
+    </resultMap>
+
+    <resultMap type="DetectionLogDetail" id="DetectionLogDetailResult">
+        <result property="id"    column="id"    />
+        <result property="logId"    column="log_id"    />
+        <result property="label"    column="label"    />
+        <result property="conf"    column="conf"    />
+        <result property="cropName"    column="crop_name"    />
+        <result property="varietyName"    column="variety_name"    />
+        <result property="cropStatus"    column="crop_status"    />
+        <result property="bbox"    column="location_json"    />
+        <result property="linkedEncyclopedia"    column="linked_encyclopedia"    />
+    </resultMap>
+
+    <sql id="selectDetectionLogVo">
+        select a.id,
+               a.log_type,
+               a.detect_type,
+               a.user_id,
+               b.user_name,
+               a.model_config_id,
+               mc.is_del as model_config_is_del,
+               mc.is_active as model_config_is_active,
+               mc.model_name,
+               mc.version,
+               a.result_image_path,
+               a.duration_ms,
+               a.total_targets,
+               a.feedback_status,
+               a.feedback_text,
+               a.feedback_time,
+               a.detect_time,
+               a.density_json
+        from detection_log a
+        left join model_config mc on mc.id = a.model_config_id
+        left join sys_user b on b.user_id = a.user_id
+    </sql>
+
+    <select id="selectDetectionLogList" parameterType="DetectionLog" resultMap="DetectionLogResult">
+        <include refid="selectDetectionLogVo"/>
+        <where>  
+            <if test="logType != null "> and a.log_type = #{logType}</if>
+            <if test="detectType != null "> and a.detect_type = #{detectType}</if>
+            <if test="userId != null "> and a.user_id = #{userId}</if>
+            <if test="modelConfigId != null  and modelConfigId != ''"> and model_config_id = #{modelConfigId}</if>
+            <if test="feedbackStatus != null "> and feedback_status = #{feedbackStatus}</if>
+            <if test="params.beginCreateTime != null and params.beginCreateTime != '' and params.endCreateTime != null and params.endCreateTime != ''"> and detect_time between #{params.beginCreateTime} and #{params.endCreateTime}</if>
+        </where>
+    </select>
+    
+    <select id="selectDetectionLogById" parameterType="Long" resultMap="DetectionLogDetectionLogDetailResult">
+        <include refid="selectDetectionLogVo"/>
+        where a.id = #{id}
+    </select>
+
+    <select id="selectDetectionLogDetailList" resultMap="DetectionLogDetailResult">
+        select a.id, a.log_id, a.label, a.conf, a.location_json, a.linked_encyclopedia,
+               b.name as crop_name, c.name as variety_name, b.status as crop_status
+        from detection_log_detail a
+            left join crop b on b.id = a.linked_encyclopedia
+            left join variety c on c.id = b.variety_id
+        where log_id = #{log_id}
+    </select>
+
+    <insert id="insertDetectionLog" parameterType="DetectionLog" useGeneratedKeys="true" keyProperty="id">
+        insert into detection_log
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="logType != null">log_type,</if>
+            <if test="detectType != null">detect_type,</if>
+            <if test="userId != null">user_id,</if>
+            <if test="modelConfigId != null and modelConfigId != ''">model_config_id,</if>
+            <if test="resultImagePath != null and resultImagePath != ''">result_image_path,</if>
+            <if test="durationMs != null">duration_ms,</if>
+            <if test="totalTargets != null">total_targets,</if>
+            <if test="feedbackStatus != null">feedback_status,</if>
+            <if test="feedbackText != null">feedback_text,</if>
+            <if test="feedbackTime != null">feedback_time,</if>
+            <if test="detectTime != null">detect_time,</if>
+            <if test="densityJson != null">density_json,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="logType != null">#{logType},</if>
+            <if test="detectType != null">#{detectType},</if>
+            <if test="userId != null">#{userId},</if>
+            <if test="modelConfigId != null and modelConfigId != ''">#{modelConfigId},</if>
+            <if test="resultImagePath != null and resultImagePath != ''">#{resultImagePath},</if>
+            <if test="durationMs != null">#{durationMs},</if>
+            <if test="totalTargets != null">#{totalTargets},</if>
+            <if test="feedbackStatus != null">#{feedbackStatus},</if>
+            <if test="feedbackText != null">#{feedbackText},</if>
+            <if test="feedbackTime != null">#{feedbackTime},</if>
+            <if test="detectTime != null">#{detectTime},</if>
+            <if test="densityJson != null">#{densityJson},</if>
+         </trim>
+    </insert>
+
+    <update id="updateDetectionLog" parameterType="DetectionLog">
+        update detection_log
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="logType != null">log_type = #{logType},</if>
+            <if test="detectType != null">detect_type = #{detectType},</if>
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="modelConfigId != null and modelConfigId != ''">model_config_id = #{modelConfigId},</if>
+            <if test="resultImagePath != null and resultImagePath != ''">result_image_path = #{resultImagePath},</if>
+            <if test="durationMs != null">duration_ms = #{durationMs},</if>
+            <if test="totalTargets != null">total_targets = #{totalTargets},</if>
+            <if test="feedbackStatus != null">feedback_status = #{feedbackStatus},</if>
+            <if test="feedbackText != null">feedback_text = #{feedbackText},</if>
+            <if test="feedbackTime != null">feedback_time = #{feedbackTime},</if>
+            <if test="detectTime != null">detect_time = #{detectTime},</if>
+            <if test="densityJson != null">density_json = #{densityJson},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteDetectionLogById" parameterType="Long">
+        delete from detection_log where id = #{id}
+    </delete>
+
+    <delete id="deleteDetectionLogByIds" parameterType="String">
+        delete from detection_log where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+    
+    <delete id="deleteDetectionLogDetailByLogIds" parameterType="String">
+        delete from detection_log_detail where log_id in 
+        <foreach item="logId" collection="array" open="(" separator="," close=")">
+            #{logId}
+        </foreach>
+    </delete>
+
+    <delete id="deleteDetectionLogDetailByLogId" parameterType="Long">
+        delete from detection_log_detail where log_id = #{logId}
+    </delete>
+
+    <insert id="batchDetectionLogDetail">
+        insert into detection_log_detail( id, log_id, label, conf, location_json, linked_encyclopedia) values
+        <foreach item="item" index="index" collection="list" separator=",">
+            ( #{item.id}, #{item.logId}, #{item.label}, #{item.conf}, #{item.bbox}, #{item.linkedEncyclopedia})
+        </foreach>
+    </insert>
+</mapper>

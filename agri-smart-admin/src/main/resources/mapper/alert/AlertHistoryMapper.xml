@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.agriSmart.alert.mapper.AlertHistoryMapper">
+    
+    <resultMap type="AlertHistory" id="AlertHistoryResult">
+        <result property="id"    column="id"    />
+        <result property="plotId"    column="plot_id"    />
+        <result property="plotName"    column="plot_Name"    />
+        <result property="alertTypeId"    column="alert_type_id"    />
+        <result property="alertType"    column="alert_type"    />
+        <result property="triggerValue"    column="trigger_value"    />
+        <result property="minValue"    column="min_value"    />
+        <result property="maxValue"    column="max_value"    />
+        <result property="status"    column="status"    />
+        <result property="triggerTime"    column="trigger_time"    />
+        <result property="recoveryTime"    column="recovery_time"    />
+        <result property="durationMinutes"    column="duration_minutes"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="remark"    column="remark"    />
+    </resultMap>
+
+    <sql id="selectAlertHistoryVo">
+        select a.id, a.plot_id, c.name as plot_Name, b.name as alert_type, a.alert_type_id, a.trigger_value,
+               a.min_value, a.max_value, a.status, a.trigger_time, a.recovery_time, a.duration_minutes,
+               a.update_time, a.remark
+        from alert_history a
+            left join alert_type b on b.id = a.alert_type_id
+            left join farm_plot c on c.id = a.plot_id
+    </sql>
+
+    <select id="selectAlertHistoryList" parameterType="AlertHistory" resultMap="AlertHistoryResult">
+        <include refid="selectAlertHistoryVo"/>
+        <where>  
+            <if test="plotId != null "> and a.plot_id = #{plotId}</if>
+            <if test="alertTypeId != null "> and a.alert_type_id = #{alertTypeId}</if>
+            <if test="status != null "> and a.status = #{status}</if>
+            <if test="params.beginTriggerTime != null and params.beginTriggerTime != '' and params.endTriggerTime != null and params.endTriggerTime != ''"> and a.trigger_time between #{params.beginTriggerTime} and #{params.endTriggerTime}</if>
+            <if test="params.beginRecoveryTime != null and params.beginRecoveryTime != '' and params.endRecoveryTime != null and params.endRecoveryTime != ''"> and a.recovery_time between #{params.beginRecoveryTime} and #{params.endRecoveryTime}</if>
+        </where>
+    </select>
+    
+    <select id="selectAlertHistoryById" parameterType="Long" resultMap="AlertHistoryResult">
+        <include refid="selectAlertHistoryVo"/>
+        where a.id = #{id}
+    </select>
+    <select id="selectUnrecoveredAlert" resultMap="AlertHistoryResult">
+        select id, status, trigger_time
+        from alert_history
+        where plot_id = #{plotId}
+          and alert_type_id = #{alertTypeId}
+          and status = 0
+          and recovery_time is null
+    </select>
+    <select id="selectUnrecoveredAlertsByPlotId">
+        select count(id)
+        from alert_history
+        where plot_id = #{plotId}
+          and status = 0
+          and recovery_time is null
+    </select>
+
+
+    <insert id="insertAlertHistory" parameterType="AlertHistory" useGeneratedKeys="true" keyProperty="id">
+        insert into alert_history
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="plotId != null">plot_id,</if>
+            <if test="alertTypeId != null">alert_type_id,</if>
+            <if test="triggerValue != null">trigger_value,</if>
+            <if test="minValue != null">min_value,</if>
+            <if test="maxValue != null">max_value,</if>
+            <if test="status != null">status,</if>
+            <if test="triggerTime != null">trigger_time,</if>
+            <if test="recoveryTime != null">recovery_time,</if>
+            <if test="durationMinutes != null">duration_minutes,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="remark != null">remark,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="plotId != null">#{plotId},</if>
+            <if test="alertTypeId != null">#{alertTypeId},</if>
+            <if test="triggerValue != null">#{triggerValue},</if>
+            <if test="minValue != null">#{minValue},</if>
+            <if test="maxValue != null">#{maxValue},</if>
+            <if test="status != null">#{status},</if>
+            <if test="triggerTime != null">#{triggerTime},</if>
+            <if test="recoveryTime != null">#{recoveryTime},</if>
+            <if test="durationMinutes != null">#{durationMinutes},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="remark != null">#{remark},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAlertHistory" parameterType="AlertHistory">
+        update alert_history
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="plotId != null">plot_id = #{plotId},</if>
+            <if test="alertTypeId != null">alert_type_id = #{alertTypeId},</if>
+            <if test="triggerValue != null">trigger_value = #{triggerValue},</if>
+            <if test="minValue != null">min_value = #{minValue},</if>
+            <if test="maxValue != null">max_value = #{maxValue},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="triggerTime != null">trigger_time = #{triggerTime},</if>
+            <if test="recoveryTime != null">recovery_time = #{recoveryTime},</if>
+            <if test="durationMinutes != null">duration_minutes = #{durationMinutes},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteAlertHistoryById" parameterType="Long">
+        delete from alert_history where id = #{id}
+    </delete>
+
+    <delete id="deleteAlertHistoryByIds" parameterType="String">
+        delete from alert_history where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>
